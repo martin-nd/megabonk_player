@@ -99,7 +99,7 @@ def spin():
         ('a'),
         ('a', 'w')
     ]
-    for dir in dirs:
+    for dir in dirs[::-1]:
         gui.hotkey(*dir)
         t.sleep(0.1)
     
