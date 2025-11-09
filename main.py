@@ -34,7 +34,8 @@ CS_YEND = int(974/1080 * PX_Y)
 
 def parse_args():
     parser = ap.ArgumentParser()
-    parser.add_argument('-c', '--character', required = True, type = str)
+    parser.add_argument('-c', '--character', required = True, type = str, help = 'character you are playing with, select and return to main menu to run')
+    parser.add_argument('-d', '--delay', default = 0, required = False, type = int, help = 'Delay timer for start in case of 1 screen')
     return parser.parse_args()
 
 def click_button(button):
@@ -128,9 +129,16 @@ def return_to_main():
     gui.hotkey('enter')
     t.sleep(3)
     gui.hotkey('enter')
+    
+def delay(seconds):
+    for i in range(seconds):
+        print(f'Waiting {seconds - i} seconds' + (20 * ' '), end = '\r')
+        t.sleep(1)
+    print(f'Waited {seconds} seconds')
 
 def main():
     args = parse_args()
+    delay(args.delay)
     n = 1
     log = load_or_create_log()
     while True:
