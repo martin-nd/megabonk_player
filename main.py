@@ -36,6 +36,7 @@ def parse_args():
     parser = ap.ArgumentParser()
     parser.add_argument('-c', '--character', required = True, type = str, help = 'character you are playing with, select and return to main menu to run')
     parser.add_argument('-d', '--delay', default = 0, required = False, type = int, help = 'Delay timer for start in case of 1 screen')
+    parser.add_argument('-ss', '--spin-speed', default = 1, required = False, type = float, help = 'character spin speed, character rotates at {speed} rps, default 1')
     return parser.parse_args()
 
 def click_button(button):
@@ -98,7 +99,7 @@ def launch_from_mm():
     # click confirm
     click_confirm()
     
-def spin():
+def spin(speed):
     dirs = [
         ('w',),
         ('w', 'd'),
@@ -111,9 +112,8 @@ def spin():
     ]
     for dir in dirs[::-1]:
         gui.hotkey(*dir)
-        t.sleep(0.1)
     
-def play():
+def play(spinspeed):
     region = (1800, 120, 100, 780)
     while True:
         screenshot = np.array(gui.screenshot(region = region))
@@ -121,7 +121,7 @@ def play():
         if (gray.mean(axis = 0) == 0).all():
             print('\tDeath Detected')
             break
-        spin()
+        spin(spinspeed)
         gui.hotkey('e')
     return dt.now()
 
@@ -137,9 +137,11 @@ def delay(seconds):
     print(f'Waited {seconds} seconds')
 
 def main():
+    gui.PAUSE = 0.1
     args = parse_args()
+    print(f'Using RPS of {args.spin_speed}')
     delay(args.delay)
-    n = 1
+    games_logged = 0
     log = load_or_create_log()
     while True:
         try:
@@ -147,33 +149,41 @@ def main():
             launch_from_mm()
             t.sleep(6)
             row['run_start'].append(dt.now())
-            print(f'Starting run {n} at {row['run_start'][0]}')
-            row['run_end'].append(play())
-            n += 1
+            print(f'Starting run {games_logged + 1} at {row['run_start'][0]}')
+            # unlock inputs for a moment for spin speed to take effect
+            gui.PAUSE = (1 / args.spin_speed) / 10
+            row['run_end'].append(play(args.spin_speed))
+            # lock em again
+            gui.PAUSE = 0.1
             print(f'\tRun ended at {row['run_end'][0]}')
+            print(f'\t\tDuration: {(row['run_end'][0] - row['run_start'][0]).seconds // 60}m, {(row['run_end'][0] - row['run_start'][0]).seconds % 60}s')
             row['character'].append(args.character)
             rowdf = pl.DataFrame(row)
             log = load_or_create_log()
             log = pl.concat([log, rowdf])
             log.write_excel('logdata/log.xlsx')
+            games_logged += 1
             print('\tRun logged')
             t.sleep(10)
             return_to_main()
             t.sleep(10)
         except (KeyboardInterrupt, gui.FailSafeException) as e:
+            gui.PAUSE = 0.1
+            if e == KeyboardInterrupt:
+                print('Recieved keyboard interrupt, ending play loop')
+            if e == gui.FailSafeException:
+                print('pyautogui detected failsafe activation, ending play loop')
             break
-    if len(row['run_end']) == 0:
-        n -= 1
-    tdif_df = log\
+    if games_logged >= 1:
+        tdif_df = log\
         .with_columns(
             (c('run_end') - c('run_start')).dt.total_seconds().alias('run_length_s')
         )\
-        .tail(n)
-    try:
+        .tail(games_logged)
         av_tdif = tdif_df['run_length_s'].mean() / 60
         av_tdif_str = f'{int(av_tdif)}m, {round((av_tdif - int(av_tdif)) * 60)}s'
-        print(f'__________________\nPlayed and logged {n} runs with average run time of {av_tdif_str}')
-    except TypeError:
+        print(f'__________________\nPlayed and logged {games_logged} runs with average run time of {av_tdif_str}')
+    else:
         print('No runs completed or logged')
 
 if __name__ == "__main__":
