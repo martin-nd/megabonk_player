@@ -4,9 +4,11 @@ import cv2
 import time as t
 import numpy as np
 import polars as pl
+from polars import col as c
 from typing import DefaultDict
-from datetime import datetime as dt
+from datetime import datetime as dt, date as d
 from random import randint
+import argparse as ap
 
 ## Button globals
 MM_PLAYBUTTON = 'img/mmplay.png'
@@ -30,6 +32,11 @@ CS_XEND = int(708/1920 * PX_X)
 CS_YSTART = int(174/1080 * PX_Y)
 CS_YEND = int(974/1080 * PX_Y)
 
+def parse_args():
+    parser = ap.ArgumentParser()
+    parser.add_argument('-c', '--character', required = True, type = str)
+    return parser.parse_args()
+
 def click_button(button):
     buttonloc = gui.locateCenterOnScreen(button, confidence = 0.85)
     gui.moveTo(*buttonloc)
@@ -46,12 +53,14 @@ def load_or_create_log():
         df = {
             'run_start': [],
             'run_end': [],
+            'character': []
         }
         df = pl.DataFrame(df)
         df.write_excel('logdata/log.xlsx')
     df = pl.read_excel('logdata/log.xlsx', schema_overrides = {
         'run_start': pl.Datetime,
-        'run_end': pl.Datetime
+        'run_end': pl.Datetime,
+        'character': pl.String
     })
     return df
 
@@ -109,10 +118,11 @@ def play():
         screenshot = np.array(gui.screenshot(region = region))
         gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
         if (gray.mean(axis = 0) == 0).all():
-            print('Death Detected')
+            print('\tDeath Detected')
             break
         spin()
         gui.hotkey('e')
+    return dt.now()
 
 def return_to_main():
     gui.hotkey('enter')
@@ -120,20 +130,43 @@ def return_to_main():
     gui.hotkey('enter')
 
 def main():
+    args = parse_args()
+    n = 1
+    log = load_or_create_log()
     while True:
-        row = DefaultDict(list)
-        launch_from_mm()
-        row['run_start'] = dt.now()
-        t.sleep(10)
-        play()
-        t.sleep(10)
-        row['run_end'] = dt.now()
-        rowdf = pl.DataFrame(row)
-        log = load_or_create_log()
-        log = pl.concat([log, rowdf])
-        log.write_excel('logdata/log.xlsx')
-        return_to_main()
-        t.sleep(10)
+        try:
+            row = DefaultDict(list)
+            launch_from_mm()
+            t.sleep(6)
+            row['run_start'].append(dt.now())
+            print(f'Starting run {n} at {row['run_start'][0]}')
+            row['run_end'].append(play())
+            n += 1
+            print(f'\tRun ended at {row['run_end'][0]}')
+            row['character'].append(args.character)
+            rowdf = pl.DataFrame(row)
+            log = load_or_create_log()
+            log = pl.concat([log, rowdf])
+            log.write_excel('logdata/log.xlsx')
+            print('\tRun logged')
+            t.sleep(10)
+            return_to_main()
+            t.sleep(10)
+        except (KeyboardInterrupt, gui.FailSafeException) as e:
+            break
+    if len(row['run_end']) == 0:
+        n -= 1
+    tdif_df = log\
+        .with_columns(
+            (c('run_end') - c('run_start')).dt.total_seconds().alias('run_length_s')
+        )\
+        .tail(n)
+    try:
+        av_tdif = tdif_df['run_length_s'].mean() / 60
+        av_tdif_str = f'{int(av_tdif)}m, {round((av_tdif - int(av_tdif)) * 60)}s'
+        print(f'__________________\nPlayed and logged {n} runs with average run time of {av_tdif_str}')
+    except TypeError:
+        print('No runs completed or logged')
 
 if __name__ == "__main__":
     main()
