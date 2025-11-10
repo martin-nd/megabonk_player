@@ -1,21 +1,25 @@
-# Download the packaged .exe on the right!
+# Download the packaged .exe to the right under 'releases'
 
 ### Download the zip and unzip it - follow the included readme.txt
 
-# Megabonk Player Automation Script
+## Requirements
+- Game must be:
+  - Running in full screen
+  - Running in native display resolution
+- Screen scaling must be at 100%
+- Only works on Windows
 
-Automates gameplay for the “Megabonk” game by performing repeated runs, detecting deaths, and logging results automatically.
 
-## Overview
+# Megabonk afk gaming challenge script
 
-This script uses **PyAutoGUI** and **OpenCV** to automate character selection, gameplay loops, and data logging. It performs runs until a death is detected, logs session information, and repeats indefinitely until interrupted.
+Automates attempts at the afk gaming challenge on forest tier 1
 
 ---
 
 ## Usage
 
-```bash
-megabonk_player.exe -c <character> [-d <delay>] [-rps <rotations_per_second>]
+```powershell
+.\megabonk_player.exe -c <character> [-d <delay>] [-rps <rotations_per_second>]
 ```
 
 ### Arguments
@@ -74,19 +78,14 @@ The loop ends when:
 
 ---
 
-## Requirements
+## Requirements to run source code
 
-- Python 3.10+
-- Packages:
-  ```bash
-  pip install pyautogui opencv-python-headless numpy polars
-  ```
-- Image assets located in `img/` directory.
+- `uv` package manager recommended
+- Python 3.12
+- commands:
 
----
+```bash
+ uv venv
+ uv sync
+```
 
-## Notes
-
-- When bundled with **PyInstaller**, image assets are loaded from the temporary `_MEIPASS` path.  
-- Ensure the game is visible and not minimized.  
-- Game must be running in full screen on primary display.
