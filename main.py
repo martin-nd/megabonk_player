@@ -141,7 +141,8 @@ def spin():
         gui.hotkey(*dir)
     
 def play():
-    region = (1800, 120, 100, 780)
+    guisize = gui.size()
+    region = (int(1800 / 1920 * guisize.width), int(120 / 1080 * guisize.height), int(100 / 1920 * guisize.width), int(780 / 1080 * guisize.height))
     while True:
         screenshot = np.array(gui.screenshot(region = region))
         gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
