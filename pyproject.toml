@@ -3,7 +3,7 @@ name = "megabonk-player"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "fastexcel>=0.16.0",
     "numpy>=2.3.4",
@@ -13,5 +13,7 @@ dependencies = [
     "polars>=1.35.1",
     "pyarrow>=22.0.0",
     "pyautogui>=0.9.54",
+    "pyinstaller>=6.16.0",
+    "setuptools>=80.9.0",
     "xlsxwriter>=3.2.9",
 ]

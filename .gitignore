@@ -1,2 +1,5 @@
 *.xlsx
 *.R
+dist
+build
+logdata
